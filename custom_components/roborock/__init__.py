@@ -101,6 +101,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
 
             map_client = await hass.async_add_executor_job(RoborockMqttClient, user_data, device_info)
+            await map_client.async_connect()
 
             if not cloud_integration:
                 try:
