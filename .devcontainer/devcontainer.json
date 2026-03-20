@@ -1,0 +1,27 @@
+{
+	"image": "ghcr.io/ludeeus/devcontainer/integration:stable",
+	"name": "Roborock integration development",
+	"forwardPorts": [8123],
+	"postCreateCommand": "container install",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"github.vscode-pull-request-github",
+				"ryanluker.vscode-coverage-gutters",
+				"ms-python.vscode-pylance"
+			],
+			"settings": {
+				"files.eol": "\n",
+				"editor.tabSize": 4,
+				"terminal.integrated.defaultProfile.linux": "bash",
+				"python.defaultInterpreterPath": "/usr/bin/python3",
+				"python.analysis.autoSearchPaths": false,
+				"editor.formatOnPaste": false,
+				"editor.formatOnSave": true,
+				"editor.formatOnType": true,
+				"files.trimTrailingWhitespace": true
+			}
+		}
+	}
+}
