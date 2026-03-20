@@ -103,17 +103,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             map_client = await hass.async_add_executor_job(RoborockMqttClient, user_data, device_info)
 
             if not cloud_integration:
-                network = device_network.get(device_id)
-                if network is None:
-                    networking = await map_client.get_networking()
-                    network = DeviceNetwork(ip=networking.ip, mac="")
-                    device_network[device_id] = network
-                    hass.config_entries.async_update_entry(
-                        entry, data={"device_network": device_network, **data}
+                try:
+                    network = device_network.get(device_id)
+                    if network is None:
+                        networking = await map_client.get_networking()
+                        network = DeviceNetwork(ip=networking.ip, mac="")
+                        device_network[device_id] = network
+                        hass.config_entries.async_update_entry(
+                            entry, data={"device_network": device_network, **data}
+                        )
+                    device_info.host = network.get("ip")
+                    main_client = RoborockLocalClient(device_info)
+                except Exception:
+                    _LOGGER.warning(
+                        "Failed to set up local connection for %s, falling back to cloud",
+                        device_id,
                     )
-                device_info.host = network.get("ip")
-
-                main_client = RoborockLocalClient(device_info)
+                    main_client = map_client
             else:
                 main_client = map_client
             data_coordinator = RoborockDataUpdateCoordinator(
@@ -124,8 +130,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "coordinator": data_coordinator,
                 "calendar": LocalCalendarStore(hass, path)
             }
-        except RoborockException:
-            _LOGGER.warning(f"Failing setting up device {device_id}")
+        except Exception as e:
+            _LOGGER.warning("Failed setting up device %s: %s", device_id, e)
 
     await asyncio.gather(
         *(
