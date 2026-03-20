@@ -56,16 +56,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         api_client = RoborockApiClient(username, base_url)
         _LOGGER.debug("Requesting home data")
         home_data = await api_client.get_home_data(user_data)
+        _LOGGER.warning(
+            "Home data: %d devices, %d received_devices, %d products",
+            len(home_data.devices), len(home_data.received_devices), len(home_data.products),
+        )
         hass.config_entries.async_update_entry(
             entry, data={CONF_HOME_DATA: home_data.as_dict(), **data}
         )
         if home_data is None:
             raise ConfigEntryError("Missing home data. Could not found it in cache")
     except Exception as e:
+        _LOGGER.warning("Failed to get home data from API: %s", e)
         conf_home_data = data.get("home_data")
         home_data = HomeData.from_dict(conf_home_data) if conf_home_data else None
         if home_data is None:
             raise e
+        _LOGGER.warning("Using cached home data")
 
     _LOGGER.debug("Got home data %s", home_data)
 
@@ -82,12 +88,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if include_shared
         else home_data.devices
     )
+    _LOGGER.warning("Total devices to set up: %d (cloud_integration=%s)", len(devices), cloud_integration)
     if not cloud_integration:
         devices_without_ip = [_device for _device in devices if _device.duid not in device_network]
         if len(devices_without_ip) > 0:
             device_network.update(await get_local_devices_info())
     for _device in devices:
         device_id = _device.duid
+        _LOGGER.warning("Setting up device %s (product_id=%s)", device_id, _device.product_id)
         try:
             product: HomeDataProduct = next(
                 product
@@ -101,7 +109,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
 
             map_client = await hass.async_add_executor_job(RoborockMqttClient, user_data, device_info)
+            _LOGGER.warning("Connecting MQTT for device %s...", device_id)
             await map_client.async_connect()
+            _LOGGER.warning("MQTT connected for device %s", device_id)
 
             if not cloud_integration:
                 try:
@@ -123,6 +133,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     main_client = map_client
             else:
                 main_client = map_client
+            _LOGGER.warning(
+                "Using %s client for device %s",
+                "local" if main_client != map_client else "cloud",
+                device_id,
+            )
             data_coordinator = RoborockDataUpdateCoordinator(
                 hass, main_client, map_client, device_info, home_data.rooms
             )
@@ -145,6 +160,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     success_coordinators = []
     for device_id, device_entry_data in devices_entry_data.items():
         _coordinator = device_entry_data["coordinator"]
+        _LOGGER.warning("Device %s refresh result: success=%s", device_id, _coordinator.last_update_success)
         if not _coordinator.last_update_success:
             await _coordinator.async_release()
             devices_entry_data[device_id] = None
