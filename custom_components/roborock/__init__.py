@@ -11,7 +11,7 @@ from roborock.web_api import RoborockApiClient
 from roborock.version_1_apis import RoborockMqttClientV1 as RoborockMqttClient
 from roborock.version_1_apis import RoborockLocalClientV1 as RoborockLocalClient
 from roborock.containers import HomeData, HomeDataProduct, UserData
-from roborock.protocol import RoborockProtocol
+from roborock.broadcast_protocol import RoborockProtocol
 from slugify import slugify
 
 from homeassistant.config_entries import ConfigEntry
