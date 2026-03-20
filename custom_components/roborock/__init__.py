@@ -46,7 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     username = data.get("username")
     vacuum_options = entry.options.get(VACUUM, {})
     integration_options = entry.options.get(DOMAIN, {})
-    cloud_integration = integration_options.get(CONF_CLOUD_INTEGRATION, False)
+    cloud_integration = integration_options.get(CONF_CLOUD_INTEGRATION, True)
     include_shared = (
         vacuum_options.get(CONF_INCLUDE_SHARED, True)
     )
